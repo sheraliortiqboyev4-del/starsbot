@@ -42,7 +42,6 @@ function reseller_request(string $method, string $endpoint, array $payload = [],
     if (strtoupper($method) === 'POST') {
         $body = json_encode($payload, JSON_UNESCAPED_UNICODE);
         if ($body === false) {
-            curl_close($ch);
             throw new ResellerApiException('Hamkor API uchun so\'rovni JSON ga aylantirib bo\'lmadi.');
         }
         $options[CURLOPT_POST] = true;
@@ -60,7 +59,6 @@ function reseller_request(string $method, string $endpoint, array $payload = [],
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $curlError = curl_error($ch);
-    curl_close($ch);
 
     if ($response === false) {
         throw new ResellerApiUncertainException('Hamkor API bilan aloqa uzildi: ' . $curlError);
