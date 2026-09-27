@@ -106,33 +106,23 @@ function premium_duration_keyboard(): array
     return inline_keyboard($rows);
 }
 
-function recipient_choice_keyboard(): array
-{
-    return inline_keyboard([
-        [
-            ['text' => '🙋 O\'zimga', 'callback_data' => 'recipient_self'],
-            ['text' => '👥 Qabul qiluvchini tanlash', 'callback_data' => 'recipient_pick'],
-        ],
-        back_row(),
-    ]);
-}
-
-function recipient_picker_keyboard(int $requestId): array
+function recipient_choice_keyboard(int $requestId): array
 {
     return [
         'keyboard' => [
-            [[
-                'text' => '👥 Telegram’dan tanlash',
-                'request_users' => [
-                    'request_id' => $requestId,
-                    'user_is_bot' => false,
-                    'max_quantity' => 1,
-                    'request_name' => true,
-                    'request_username' => true,
+            [
+                ['text' => '🙋 O\'zimga'],
+                [
+                    'text' => '👥 Qabul qiluvchini tanlash',
+                    'request_users' => [
+                        'request_id' => $requestId,
+                        'user_is_bot' => false,
+                        'max_quantity' => 1,
+                        'request_name' => true,
+                        'request_username' => true,
+                    ],
                 ],
-            ]],
-            [['text' => '✍️ Username yoki ID kiritish']],
-            [['text' => '✖️ Bekor qilish']],
+            ],
         ],
         'resize_keyboard' => true,
         'one_time_keyboard' => true,
@@ -170,7 +160,7 @@ function complete_recipient_purchase(int $chatId, array $user, array $selection,
         reset_state($chatId);
         $price = round($amount * price_per_star(), 2);
         $result = purchase((int) $user['id'], 'stars', $username, $amount, $price);
-        render_purchase_result($chatId, $result, $price, $user);
+        render_purchase_result($chatId, $result, $price);
         return;
     }
 
@@ -186,7 +176,7 @@ function complete_recipient_purchase(int $chatId, array $user, array $selection,
         reset_state($chatId);
         $price = (float) $prices[$months];
         $result = purchase((int) $user['id'], 'premium', $username, $months, $price);
-        render_purchase_result($chatId, $result, $price, $user);
+        render_purchase_result($chatId, $result, $price);
         return;
     }
 
@@ -196,12 +186,13 @@ function complete_recipient_purchase(int $chatId, array $user, array $selection,
 
 function welcome_text(array $user): string
 {
-    $firstName = trim((string) ($user['first_name'] ?? ''));
-    $greetingName = $firstName !== '' ? " {$firstName}" : '';
+    $firstName = htmlspecialchars(trim((string) ($user['first_name'] ?? '')), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    $botUsername = htmlspecialchars(ltrim(BOT_USERNAME, '@'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
-    return "👋 Assalomu alaykum{$greetingName}, botimizga xush kelibsiz!\n\n" .
-        "➡️ Bot orqali quyidagilarni xarid qilishingiz mumkin: «Tez va xavfsiz».\n\n" .
-        "Boshlash uchun xizmatni tanlang: 🛩";
+    return "<b>👋🏻 Assalom aleykum, {$firstName} @{$botUsername} botga xush kelibsiz!</b>\n\n" .
+        "<b><i>🤖 Bot orqali quyidagilarni xarid qilish mumkin. «Tez va xavfsiz»</i></b>\n\n" .
+        "<blockquote>⭐️ Telegram Stars — yulduzcha\n🌟 Telegram Premium\n🎁 Telegram Gift — sovg'alar</blockquote>\n\n" .
+        "<b><i>🚀 Boshlash uchun xizmatni tanlang: 👇🏻</i></b>";
 }
 
 function handle_message(array $message): void
@@ -250,7 +241,7 @@ function handle_shared_recipient(int $chatId, array $user, array $shared): void
     $sharedRequestId = (int) ($shared['request_id'] ?? 0);
     $selectedUsers = $shared['users'] ?? [];
 
-    if ($selection['state'] !== 'awaiting_recipient_pick' ||
+    if ($selection['state'] !== 'awaiting_recipient_choice' ||
         $expectedRequestId === 0 ||
         $sharedRequestId !== $expectedRequestId ||
         empty($selectedUsers[0]['user_id'])) {
@@ -422,59 +413,23 @@ function handle_callback(array $callback): void
             );
             return;
 
-        case $data === 'recipient_self':
-            $selection = get_state($chatId);
-            if ($selection['state'] !== 'awaiting_recipient_choice') {
-                tg_edit_message($chatId, $messageId, "❌ Tanlash sessiyasi tugagan. Buyurtmani qaytadan boshlang.", main_menu());
-                return;
-            }
-
-            $username = resolve_recipient_username((string) ($user['username'] ?? $user['telegram_id']));
-            if ($username === null) {
-                set_state($chatId, 'awaiting_recipient_username', $selection['data']);
-                tg_edit_message($chatId, $messageId,
-                    "🙋 Profilingizda username topilmadi. Hamkor API username talab qiladi. Telegram username'ingizni yuboring (masalan: @durov):",
-                    inline_keyboard([back_row()])
-                );
-                return;
-            }
-
-            tg_edit_message($chatId, $messageId, "🙋 Qabul qiluvchi: @{$username}", inline_keyboard([]));
-            complete_recipient_purchase($chatId, $user, $selection['data'], $username);
-            return;
-
-        case $data === 'recipient_pick':
-            $selection = get_state($chatId);
-            if ($selection['state'] !== 'awaiting_recipient_choice') {
-                tg_edit_message($chatId, $messageId, "❌ Tanlash sessiyasi tugagan. Buyurtmani qaytadan boshlang.", main_menu());
-                return;
-            }
-
-            $requestId = random_int(1, 2147483647);
-            $selectionData = $selection['data'];
-            $selectionData['request_id'] = $requestId;
-            set_state($chatId, 'awaiting_recipient_pick', $selectionData);
-            tg_edit_message($chatId, $messageId,
-                "👥 Qabul qiluvchini Telegram ro'yxatidan tanlang yoki username/ID kiriting.",
-                inline_keyboard([])
-            );
-            tg_send_message($chatId,
-                "Quyidagi tugma orqali Telegram'dan bitta foydalanuvchini tanlang:",
-                recipient_picker_keyboard($requestId)
-            );
-            return;
-
         case str_starts_with($data, 'stars_amt_'):
             $amount = (int) str_replace('stars_amt_', '', $data);
             if (!in_array($amount, [50, 75, 100, 150, 250, 350, 500, 750, 1000, 1500, 3000, 5000], true)) {
                 tg_edit_message($chatId, $messageId, "❌ Stars miqdori noto'g'ri. Qaytadan tanlang:", stars_amount_keyboard());
                 return;
             }
-            set_state($chatId, 'awaiting_recipient_choice', ['type' => 'stars', 'amount' => $amount]);
+            $requestId = random_int(1, 2147483647);
+            set_state($chatId, 'awaiting_recipient_choice', [
+                'type' => 'stars',
+                'amount' => $amount,
+                'request_id' => $requestId,
+            ]);
             tg_edit_message($chatId, $messageId,
                 "⭐ {$amount} ta Stars tanlandi. Qabul qiluvchini tanlang:",
-                recipient_choice_keyboard()
+                inline_keyboard([])
             );
+            tg_send_message($chatId, "O'zingizga yuboring yoki Telegram ro'yxatidan tanlang:", recipient_choice_keyboard($requestId));
             return;
 
         case str_starts_with($data, 'prem_'):
@@ -484,11 +439,17 @@ function handle_callback(array $callback): void
                 tg_edit_message($chatId, $messageId, "❌ Premium muddati noto'g'ri. Qaytadan tanlang:", premium_duration_keyboard());
                 return;
             }
-            set_state($chatId, 'awaiting_recipient_choice', ['type' => 'premium', 'months' => $months]);
+            $requestId = random_int(1, 2147483647);
+            set_state($chatId, 'awaiting_recipient_choice', [
+                'type' => 'premium',
+                'months' => $months,
+                'request_id' => $requestId,
+            ]);
             tg_edit_message($chatId, $messageId,
                 "💎 {$months} oylik Premium tanlandi. Qabul qiluvchini tanlang:",
-                recipient_choice_keyboard()
+                inline_keyboard([])
             );
+            tg_send_message($chatId, "O'zingizga faollashtiring yoki Telegram ro'yxatidan tanlang:", recipient_choice_keyboard($requestId));
             return;
 
         case str_starts_with($data, 'pay_'):
@@ -527,34 +488,32 @@ function handle_callback(array $callback): void
 function handle_state_input(int $chatId, array $user, string $state, array $data, string $text): void
 {
     switch ($state) {
-        case 'awaiting_recipient_username':
+        case 'awaiting_recipient_choice':
+            if ($text === '🙋 O\'zimga') {
+                $username = resolve_recipient_username((string) ($user['username'] ?? $user['telegram_id']));
+                if ($username === null) {
+                    unset($data['request_id']);
+                    set_state($chatId, 'awaiting_recipient_username', $data);
+                    tg_send_message($chatId,
+                        "Profilingizda username topilmadi. Hamkor API username talab qiladi; username'ingizni yuboring (masalan: @durov):",
+                        ['remove_keyboard' => true]
+                    );
+                    return;
+                }
+
+                tg_send_message($chatId, "🙋 Qabul qiluvchi: @{$username}", ['remove_keyboard' => true]);
+                complete_recipient_purchase($chatId, $user, $data, $username);
+                return;
+            }
+
             $username = resolve_recipient_username($text);
             if ($username === null) {
-                tg_send_message($chatId,
-                    "❌ Bu username yoki ID ni aniqlab bo'lmadi. ID orqali faqat bot bazasida username'i bor foydalanuvchini topamiz. @username yuboring yoki Telegram'dan qaytadan tanlang:"
-                );
+                tg_send_message($chatId, "Ikki tugmadan birini tanlang yoki @username / Telegram ID yuboring:");
                 return;
             }
-            complete_recipient_purchase($chatId, $user, $data, $username);
-            return;
 
-        case 'awaiting_recipient_pick':
-            if ($text === '✖️ Bekor qilish') {
-                reset_state($chatId);
-                tg_send_message($chatId, 'Tanlash bekor qilindi.', ['remove_keyboard' => true]);
-                send_main_menu($chatId, $user);
-                return;
-            }
-            if ($text === '✍️ Username yoki ID kiritish') {
-                unset($data['request_id']);
-                set_state($chatId, 'awaiting_recipient_username', $data);
-                tg_send_message($chatId,
-                    "Qabul qiluvchining @username'ini yoki Telegram ID sini yuboring:",
-                    ['remove_keyboard' => true]
-                );
-                return;
-            }
-            tg_send_message($chatId, "Telegram ro'yxatidan tanlash yoki username/ID kiritish tugmasidan foydalaning.");
+            tg_send_message($chatId, "✅ Qabul qiluvchi: @{$username}", ['remove_keyboard' => true]);
+            complete_recipient_purchase($chatId, $user, $data, $username);
             return;
 
         case 'awaiting_topup_amount':
@@ -607,32 +566,23 @@ function handle_state_input(int $chatId, array $user, string $state, array $data
     }
 }
 
-function render_purchase_result(int $chatId, array $result, float $price, array $user): void
+function render_purchase_result(int $chatId, array $result, float $price): void
 {
-    if (!$result['success']) {
-        if ($result['message'] === 'insufficient_balance') {
-            tg_send_message($chatId,
-                "❌ Balansingizda mablag' yetarli emas.\n\nKerak: <b>" . format_sum($price) . "</b>\n\nHisobingizni to'ldirish uchun Kabinet bo'limiga o'ting.",
-                inline_keyboard([
-                    [['text' => '👤 Kabinet', 'callback_data' => 'menu_kabinet']],
-                    back_row(),
-                ])
-            );
-        } else {
-            tg_send_message($chatId, "❌ Xatolik: " . $result['message'], inline_keyboard([back_row()]));
-        }
+    if ($result['success']) {
         return;
     }
 
-    // Yangi balansni ko'rsatish uchun foydalanuvchini qayta o'qiymiz
-    $fresh = get_user_by_id((int) $user['id']);
-    $balance = $fresh ? (float) $fresh['balance'] : 0;
-
-    tg_send_message($chatId,
-        "🧾 Buyurtma #{$result['order_id']} qabul qilindi!\n💰 Yechildi: " . format_sum($price) .
-        "\n💰 Qolgan balans: " . format_sum($balance) . "\n\nHolat haqida tez orada xabar beramiz.",
-        main_menu()
-    );
+    if ($result['message'] === 'insufficient_balance') {
+        tg_send_message($chatId,
+            "❌ Balansingizda mablag' yetarli emas.\n\nKerak: <b>" . format_sum($price) . "</b>\n\nHisobingizni to'ldirish uchun Kabinet bo'limiga o'ting.",
+            inline_keyboard([
+                [['text' => '👤 Kabinet', 'callback_data' => 'menu_kabinet']],
+                back_row(),
+            ])
+        );
+    } else {
+        tg_send_message($chatId, "❌ Xatolik: " . $result['message'], inline_keyboard([back_row()]));
+    }
 }
 
 function send_kabinet(int $chatId, array $user, int $messageId): void
