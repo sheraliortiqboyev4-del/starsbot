@@ -148,9 +148,9 @@ function fulfill_order(int $orderId): void
 
     try {
         if ($order['type'] === 'stars') {
-            $result = reseller_buy_stars($order['target_username'], (int) $order['amount']);
+            $result = reseller_buy_stars($order['target_username'], (int) $order['amount'], 'bot-order-' . $orderId);
         } else {
-            $result = reseller_buy_premium($order['target_username'], (int) $order['amount']);
+            $result = reseller_buy_premium($order['target_username'], (int) $order['amount'], 'bot-order-' . $orderId);
         }
 
         if (!empty($result['success'])) {
@@ -178,6 +178,21 @@ function fulfill_order(int $orderId): void
                 "Xaridor: @{$user['username']} (ID: {$user['telegram_id']})\n" .
                 "Narx: " . format_sum((float) $order['price']) . "\n\n" .
                 "Admin panelda 'Bajarildi' deb belgilang."
+            );
+        }
+    } catch (ResellerApiUncertainException $e) {
+        update_order_status($orderId, 'awaiting_manual', $e->getMessage(), $e->externalOrderId);
+        error_log('Fulfill order #' . $orderId . ' holati noaniq: ' . $e->getMessage());
+
+        tg_send_message(
+            (int) $user['telegram_id'],
+            "⏳ Buyurtma #{$orderId} holati hamkor API'dan tasdiqlanmadi. Mablag'ingiz hozircha qaytarilmadi; iltimos, qayta xarid qilmang. Admin tekshirib sizga xabar beradi."
+        );
+        foreach (ADMIN_CHAT_IDS as $adminId) {
+            $externalId = $e->externalOrderId ? "\nHamkor order ID: {$e->externalOrderId}" : '';
+            tg_send_message(
+                (int) $adminId,
+                "⚠️ Buyurtma #{$orderId} holati noaniq: {$e->getMessage()}{$externalId}\nFoydalanuvchiga refund qilmang va qayta buyurtma bermang; hamkor panelidan tekshiring."
             );
         }
     } catch (Throwable $e) {

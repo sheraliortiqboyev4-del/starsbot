@@ -1,0 +1,361 @@
+Stars, Premium & Raqam API
+Telegram Stars, Premium obuna, Sovg'alar va SMS qabul qiluvchi raqamlarni o'z botingiz yoki saytingizdan avtomatik sotish uchun REST API. Balansingizni to'ldiring, kalitni oling va bir nechta so'rov bilan integratsiya qiling.
+
+BASE
+https://69544e6345d5c.xvest5.ru/ApilarimBot/api/v2
+⭐ Stars
+Minimal 50 ta. Username bo'yicha bevosita yetkaziladi.
+
+👑 Premium
+3, 6 yoki 12 oylik obuna.
+
+🎁 Sovg'alar
+Telegram sovg'alari, izoh va anonim yuborish bilan.
+
+📱 Raqamlar
+SMS qabul qilish uchun 300+ davlat, avtomatik eng arzon server tanlanadi.
+
+🧾 Buyurtmalar
+Har bir xarid order_id bilan saqlanadi.
+
+Barcha javoblar JSON. Muvaffaqiyatda {"ok":true,"result":{…}}, xatolikda {"ok":false,"code":"…","message":"…"} qaytadi. HTTP status kodi ham har doim to'g'ri qo'yiladi — ok maydoniga emas, statusga qarab ham ish ko'rsangiz bo'ladi.
+Autentifikatsiya
+Har bir so'rovda X-API-Key sarlavhasini yuboring. Kalitni botdagi 🔑 API kalitim bo'limidan olasiz.
+
+Nusxa
+X-API-Key: a18bd8fe095476b30cd9f745135bd95a…
+Authorization: Bearer <kalit> ko'rinishi ham qo'llab-quvvatlanadi. /pricing — yagona ochiq endpoint, unga kalit shart emas.
+
+Kalitni hech kimga bermang. Uni faqat serveringizda saqlang — brauzer JavaScript kodiga joylashtirmang, chunki u yerdan har kim o'qiy oladi. Kalit sizib chiqsa, botdan 🔄 Yangilash tugmasi bilan darhol almashtiring.
+Limitlar
+Turi	Chegara	Oshib ketsa
+Umumiy so'rovlar	10 soniyada 30 ta	429 RATE_LIMITED
+Xarid so'rovlari	10 soniyada 5 ta	429 RATE_LIMITED
+getInfo	sekundiga 1 ta (standart)	429 RATE_LIMITED
+429 javobida Retry-After sarlavhasi keladi — necha soniyadan keyin qayta urinishni ko'rsatadi. getInfo limitini oshirish uchun administratorga murojaat qiling.
+
+Takrorlanishdan himoya (idempotentlik)
+Tarmoq uzilib, javobni olmay qolsangiz — so'rovni bemalol qayta yuboring. Xarid ikki marta bajarilmaydi va pul ikki marta yechilmaydi.
+
+Buning uchun har bir xaridga o'zingizning noyob kalitingizni bering:
+
+Nusxa
+X-Idempotency-Key: order-2026-08-12-0001
+Xuddi shu kalit bilan qayta so'rov yuborilsa, birinchi javobning aynan nusxasi qaytadi va X-Idempotent-Replay: 1 sarlavhasi qo'shiladi. Kalit 24 soat saqlanadi.
+
+Kalit yubormasangiz ham, 15 soniya ichidagi bir xil so'rov (bir xil endpoint, username va miqdor) takror deb hisoblanadi — tasodifan ikki marta bosilishidan himoya qiladi.
+Narxlar
+GET
+/pricing
+kalit shart emas
+Joriy sotuv narxlari. Narxlar o'zgarib turadi — buyurtmadan oldin shu endpointdan tekshirib turing.
+
+Nusxa
+cURL
+PHP
+Python
+JS
+curl 'https://69544e6345d5c.xvest5.ru/ApilarimBot/api/v2/pricing'
+Javob
+Nusxa
+{
+  "stars": { "unit_uzs": 190, "min_amount": 50, "max_amount": 1000000 },
+  "premium": [
+    { "months": 3,  "price_uzs": 160000 },
+    { "months": 6,  "price_uzs": 235000 },
+    { "months": 12, "price_uzs": 460000 }
+  ],
+  "gift": { "markup_percent": 10, "list_endpoint": "/gifts" },
+  "numbers": { "markup_percent": 20, "list_endpoint": "/numbers/countries" }
+}
+Balans
+GET
+/balance
+Nusxa
+cURL
+PHP
+Python
+JS
+curl 'https://69544e6345d5c.xvest5.ru/ApilarimBot/api/v2/balance' \
+  -H 'X-API-Key: SIZNING_KALITINGIZ'
+Javob
+Nusxa
+{
+  "ok": true,
+  "result": {
+    "user_id": 6212122130,
+    "balance_uzs": 490500,
+    "balance_text": "490 500",
+    "stars_afforded": 2581
+  }
+}
+Sovg'alar ro'yxati
+GET
+/gifts
+Sotib olish mumkin bo'lgan sovg'alar va ularning narxi. gift_id ni /gift/buy da ishlatasiz.
+
+Nusxa
+curl 'https://69544e6345d5c.xvest5.ru/ApilarimBot/api/v2/gifts' -H 'X-API-Key: SIZNING_KALITINGIZ'
+Javob
+Nusxa
+{
+  "ok": true,
+  "result": [
+    { "gift_id": "5170250947678437525", "emoji_id": "5170250947678437525", "price_uzs": 55000 }
+  ]
+}
+Maydon	Izoh
+gift_id	Sovg'a identifikatori — xaridda shu yuboriladi
+emoji_id	Telegram custom emoji id (animatsion ikonka)
+price_uzs	Siz to'laydigan yakuniy narx (ustama qo'shilgan)
+Buyurtmalar tarixi
+GET
+/orders
+?limit=20
+Oxirgi buyurtmalaringiz. limit — 1 dan 100 gacha (standart 20).
+
+Nusxa
+curl 'https://69544e6345d5c.xvest5.ru/ApilarimBot/api/v2/orders?limit=5' -H 'X-API-Key: SIZNING_KALITINGIZ'
+Bitta buyurtmani ID bo'yicha olish:
+
+Nusxa
+curl 'https://69544e6345d5c.xvest5.ru/ApilarimBot/api/v2/order/260812143022-a1b2c3' -H 'X-API-Key: SIZNING_KALITINGIZ'
+status	Ma'nosi
+success	Bajarildi, pul yechildi
+failed	Bajarilmadi — pul balansga qaytarilgan
+processing	Jarayonda (odatda bir necha soniya)
+Foydalanuvchi ma'lumoti
+POST
+/getInfo
+1 so'rov / sekund
+Buyurtma berishdan oldin username to'g'riligini tekshirish uchun ishlating — shunda mijoz xato yozgan usernamega pul ketmaydi.
+
+Parametr	Turi	Izoh
+usernamemajburiy	string	4–32 belgi. @ yoki t.me/ bilan ham bo'ladi
+Nusxa
+curl -X POST 'https://69544e6345d5c.xvest5.ru/ApilarimBot/api/v2/getInfo' \
+  -H 'Content-Type: application/json' \
+  -H 'X-API-Key: SIZNING_KALITINGIZ' \
+  -d '{"username":"durov"}'
+Javob
+Nusxa
+{
+  "ok": true,
+  "result": { "name": "Pavel Durov", "photo": "https://…", "is_premium": true }
+}
+Stars sotib olish
+POST
+/stars/buy
+Parametr	Turi	Izoh
+usernamemajburiy	string	Qabul qiluvchi Telegram username
+amountmajburiy	integer	Stars soni. Minimal 50, maksimal 1 000 000
+Nusxa
+cURL
+PHP
+Python
+JS
+curl -X POST 'https://69544e6345d5c.xvest5.ru/ApilarimBot/api/v2/stars/buy' \
+  -H 'Content-Type: application/json' \
+  -H 'X-API-Key: SIZNING_KALITINGIZ' \
+  -H 'X-Idempotency-Key: buyurtma-1001' \
+  -d '{"username":"durov","amount":50}'
+Javob 200
+Nusxa
+{
+  "ok": true,
+  "result": {
+    "order_id":    "260812143022-a1b2c3",
+    "status":      "success",
+    "cost_uzs":    9500,
+    "balance_uzs": 490500,
+    "username":    "durov",
+    "amount":      50
+  }
+}
+Pul faqat muvaffaqiyatda yechiladi. Buyurtma bajarilmasa (provayder javob bermasa, tarmoq uzilsa) — summa balansingizga avtomatik qaytariladi va javobda "refunded": true keladi.
+Premium sotib olish
+POST
+/premium/buy
+Parametr	Turi	Izoh
+usernamemajburiy	string	Qabul qiluvchi Telegram username
+durationmajburiy	integer	Faqat 3, 6 yoki 12
+Nusxa
+curl -X POST 'https://69544e6345d5c.xvest5.ru/ApilarimBot/api/v2/premium/buy' \
+  -H 'Content-Type: application/json' \
+  -H 'X-API-Key: SIZNING_KALITINGIZ' \
+  -d '{"username":"durov","duration":3}'
+Javob 200
+Nusxa
+{
+  "ok": true,
+  "result": {
+    "order_id": "260812143530-9f0e1d",
+    "status":   "success",
+    "cost_uzs": 160000,
+    "username": "durov",
+    "duration": 3
+  }
+}
+Sovg'a yuborish
+POST
+/gift/buy
+Parametr	Turi	Izoh
+usernamemajburiy	string	Qabul qiluvchi Telegram username
+gift_idmajburiy	string	/gifts dan olingan ID
+commentixtiyoriy	string	Sovg'aga izoh, 200 belgigacha
+accountixtiyoriy	string	user (standart) yoki girl
+anonymousixtiyoriy	boolean	Yuboruvchi nomini yashirish
+Nusxa
+curl -X POST 'https://69544e6345d5c.xvest5.ru/ApilarimBot/api/v2/gift/buy' \
+  -H 'Content-Type: application/json' \
+  -H 'X-API-Key: SIZNING_KALITINGIZ' \
+  -d '{
+    "username": "durov",
+    "gift_id": "5170250947678437525",
+    "comment": "Tug'ilgan kuningiz bilan!",
+    "anonymous": false
+  }'
+Raqamlar ro'yxati
+GET
+/numbers/countries
+SMS qabul qilish uchun sotib olish mumkin bo'lgan davlatlar va narxi (so'mda, ustama qo'shilgan). Bir xil davlat bir nechta serverda bo'lsa — eng arzoni ko'rsatiladi va xariddayam avtomatik o'sha tanlanadi.
+
+Nusxa
+curl 'https://69544e6345d5c.xvest5.ru/ApilarimBot/api/v2/numbers/countries' -H 'X-API-Key: SIZNING_KALITINGIZ'
+Javob
+Nusxa
+{
+  "ok": true,
+  "result": [
+    { "code": "UZ", "name": "O'zbekiston", "server": 1, "price_uzs": 9672 }
+  ]
+}
+Maydon	Izoh
+code	ISO davlat kodi — xaridda country_code sifatida ishlatiladi
+server	Ichki provayder serveri (ma'lumot uchun — xaridda ko'rsatish shart emas)
+price_uzs	Siz to'laydigan yakuniy narx (ustama qo'shilgan)
+Raqam sotib olish
+POST
+/numbers/buy
+Parametr	Turi	Izoh
+country_codemajburiy	string	2 harfli davlat kodi, /numbers/countries dan olingan
+serverixtiyoriy	int	Ma'lum bir serverni majburlash (odatda kerak emas — eng arzoni o'zi tanlanadi)
+Nusxa
+curl -X POST 'https://69544e6345d5c.xvest5.ru/ApilarimBot/api/v2/numbers/buy' \
+  -H 'Content-Type: application/json' \
+  -H 'X-API-Key: SIZNING_KALITINGIZ' \
+  -d '{"country_code": "UZ"}'
+Javob
+Nusxa
+{
+  "ok": true,
+  "result": {
+    "order_id": "260830142211-a1b2c3",
+    "status": "success",
+    "cost_uzs": 9672,
+    "balance_uzs": 40328,
+    "country_code": "UZ",
+    "country_name": "O'zbekiston",
+    "phone": "998901234567"
+  }
+}
+order_id ni saqlang — SMS kodni shu orqali so'raysiz.
+
+SMS kodni olish
+GET
+/numbers/code/{order_id}
+pollingga mos
+SMS hali kelmagan bo'lsa status: "waiting" qaytadi — 3-5 soniyada bir marta qayta so'rab turing (SMS odatda 1-2 daqiqada keladi).
+
+Nusxa
+curl 'https://69544e6345d5c.xvest5.ru/ApilarimBot/api/v2/numbers/code/260830142211-a1b2c3' -H 'X-API-Key: SIZNING_KALITINGIZ'
+Javob (kutilmoqda)
+Nusxa
+{ "ok": true, "result": { "order_id": "260830142211-a1b2c3", "status": "waiting", "message": "SMS kod hali kelmadi, biroz kuting" } }
+Javob (kod keldi)
+Nusxa
+{
+  "ok": true,
+  "result": {
+    "order_id": "260830142211-a1b2c3",
+    "status": "finished",
+    "phone": "998901234567",
+    "code": "48291",
+    "password": ""
+  }
+}
+Xatoliklar
+Xatolik javobi har doim bir xil ko'rinishda: {"ok":false,"code":"…","message":"…"}. Kodga qarab ish ko'ring — message matni o'zgarishi mumkin.
+
+HTTP	code	Sabab va yechim
+400	VALIDATION_ERROR	Parametr noto'g'ri (username, amount, duration). Qiymatlarni tekshiring.
+400	INVALID_JSON	So'rov tanasi buzuq JSON. Content-Type: application/json qo'yganingizga ishonch hosil qiling.
+400	INSUFFICIENT_BALANCE	Balansingiz yetarli emas. Botdan to'ldiring.
+401	UNAUTHORIZED	Kalit yuborilmagan yoki noto'g'ri.
+403	ACCOUNT_BLOCKED	Hisobingiz to'xtatilgan — administratorga murojaat qiling.
+404	USER_NOT_FOUND	Bunday Telegram foydalanuvchisi topilmadi.
+404	GIFT_NOT_FOUND	Sovg'a mavjud emas. /gifts ni yangilang.
+404	COUNTRY_NOT_FOUND	Bu davlat uchun raqam hozir mavjud emas. /numbers/countries ni yangilang.
+400	ORDER_NOT_READY	Buyurtma hali tugallanmagan yoki muvaffaqiyatsiz — SMS so'rashdan oldin xarid javobini tekshiring.
+404	ORDER_NOT_FOUND	Bunday buyurtma yo'q yoki u sizniki emas.
+405	METHOD_NOT_ALLOWED	GET o'rniga POST (yoki aksincha) yuborilgan.
+429	RATE_LIMITED	Limitdan oshdingiz. Retry-After soniyasidan keyin urining.
+502	PROVIDER_ERROR	Provayder xatosi. Pul qaytarilgan, keyinroq urining.
+503	PROVIDER_BALANCE	Xizmat vaqtincha mavjud emas. Pul qaytarilgan.
+503	PROVIDER_BUSY	Xizmat band. Bir necha soniyadan keyin urining.
+504	PROVIDER_TIMEOUT	Provayder javob bermadi. Pul qaytarilgan.
+Muhim: 502/503/504 kelganda so'rovni xuddi shu X-Idempotency-Key bilan qayta yuborishingiz xavfsiz — ikki marta yetkazilmaydi.
+To'liq misol — ishonchli xarid
+Quyidagi PHP funksiyasi barcha muhim holatlarni hisobga oladi: username tekshiruvi, idempotentlik, vaqtinchalik xatolarda qayta urinish.
+
+Nusxa
+<?php
+define('API', 'https://69544e6345d5c.xvest5.ru/ApilarimBot/api/v2');
+define('KEY', 'SIZNING_KALITINGIZ');
+
+function apiSoraw($yol, $data = null, $idem = null) {
+  $h = ['Content-Type: application/json', 'X-API-Key: ' . KEY];
+  if ($idem) $h[] = 'X-Idempotency-Key: ' . $idem;
+
+  $ch = curl_init(API . $yol);
+  curl_setopt_array($ch, [
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_HTTPHEADER     => $h,
+    CURLOPT_TIMEOUT        => 60,
+  ]);
+  if ($data !== null) {
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+  }
+  $javob = curl_exec($ch);
+  $kod   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+  curl_close($ch);
+
+  return [$kod, json_decode($javob, true) ?: []];
+}
+
+function starsSot($username, $soni, $buyurtmaRaqami) {
+  // 1. Username haqiqiyligini oldindan tekshiramiz
+  list($kod, $r) = apiSoraw('/getInfo', ['username' => $username]);
+  if ($kod === 404) return 'Bunday username topilmadi';
+
+  // 2. Idempotentlik kaliti — o'z buyurtma raqamingizdan foydalaning
+  $idem = 'buyurtma-' . $buyurtmaRaqami;
+
+  // 3. Vaqtinchalik xatolarda 3 marta qayta urinamiz
+  for ($i = 1; $i <= 3; $i++) {
+    list($kod, $r) = apiSoraw('/stars/buy',
+      ['username' => $username, 'amount' => $soni], $idem);
+
+    if ($kod === 200) return 'OK: ' . $r['result']['order_id'];
+
+    // 4xx — bizning xatomiz, qayta urinish foydasiz
+    if ($kod >= 400 && $kod < 500 && $kod !== 429) {
+      return 'Xato: ' . $r['message'];
+    }
+    sleep(2 * $i);  // 429/5xx — kutib qayta urinamiz
+  }
+  return 'Uch marta urinildi, bajarilmadi (pul qaytarilgan)';
+}
+
+echo starsSot('durov', 50, 1001);

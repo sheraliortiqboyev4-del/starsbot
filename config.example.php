@@ -30,7 +30,7 @@ define('PAYME_MERCHANT_ID', 'XXXX');
 define('PAYME_KEY', 'XXXX');
 
 // ==================== RESELLER / HAMKOR API ====================
-define('RESELLER_API_BASE', 'https://example.com/api/v2');
+define('RESELLER_API_BASE', 'https://69544e6345d5c.xvest5.ru/ApilarimBot/api/v2');
 define('RESELLER_API_KEY', 'your_api_key');
 
 // ==================== UMUMIY ====================

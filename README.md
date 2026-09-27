@@ -79,9 +79,11 @@ Stars/Premium xarid qiladi.
   kalitlarini kiriting, Click/Payme kabinetida webhook manzillarini ko'rsating
   (`/payments/click.php`, `/payments/payme.php`), so'ng admin panel → Narxlar'da
   tegishli katakchalarni belgilang — hisob to'ldirish avtomatlashadi.
-- **Stars/Premium'ni avtomatik yuborish uchun hamkor API topganingizda:** `includes/reseller_api.php`
-  faylidagi ikkita funksiyani hamkor hujjatiga moslab to'ldiring. Hozircha bu bo'sh — shuning
-  uchun har bir xarid admin panel → Buyurtmalar'da "✅ Bajarildi" deb qo'lda belgilanadi.
+- **Stars/Premium'ni avtomatik yuborish uchun:** `config.php`dagi `RESELLER_API_KEY`ga
+  hamkor API kalitini kiriting. API manzili hujjatdagi v2 endpointiga sozlangan; xaridlar
+  `X-API-Key` va takroriy xaridni cheklovchi idempotency kaliti bilan yuboriladi. Narxlar
+  admin panelda boshqariladi. Hamkor javobi noaniq bo'lsa, buyurtma admin tekshiruvi uchun
+  kutilmoqda holatida qoladi. Hujjatdagi sovg'a va raqam xizmatlari bot menyusiga hozircha ulanmagan.
 
 ## 🖥 Admin panel bo'limlari
 
