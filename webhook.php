@@ -55,25 +55,25 @@ function main_menu(): array
 {
     return inline_keyboard([
         [
-            ['text' => '⭐ Stars olish', 'callback_data' => 'menu_stars'],
-            ['text' => '⭐ Premium olish', 'callback_data' => 'menu_premium'],
+            ['text' => '⭐ Stars olish', 'callback_data' => 'menu_stars', 'style' => 'success'],
+            ['text' => '🌟 Premium olish', 'callback_data' => 'menu_premium', 'style' => 'success'],
         ],
-        [['text' => '🎁 Gift olish', 'callback_data' => 'menu_gift']],
+        [['text' => '🎁 Gift olish', 'callback_data' => 'menu_gift', 'style' => 'success']],
         [
-            ['text' => '👤 Kabinet', 'callback_data' => 'menu_kabinet'],
-            ['text' => '☎️ Yordam', 'callback_data' => 'menu_help'],
+            ['text' => '👤 Profil', 'callback_data' => 'menu_kabinet', 'style' => 'danger'],
+            ['text' => '☎️ Yordam', 'callback_data' => 'menu_help', 'style' => 'danger'],
         ],
     ]);
 }
 
 function back_row(): array
 {
-    return [['text' => '↩️ Orqaga', 'callback_data' => 'menu_main']];
+    return [['text' => '↩️ Orqaga', 'callback_data' => 'menu_main', 'style' => 'primary']];
 }
 
 function stars_amount_keyboard(): array
 {
-    $amounts = [50, 75, 100, 150, 250, 350, 500, 750, 1000, 1500, 3000, 5000];
+    $amounts = [50, 100, 500, 1000, 2000, 5000];
     $pricePerStar = price_per_star();
     $rows = [];
 
@@ -83,6 +83,7 @@ function stars_amount_keyboard(): array
             $row[] = [
                 'text' => "⭐ {$amount} — " . format_sum($amount * $pricePerStar),
                 'callback_data' => "stars_amt_{$amount}",
+                'style' => 'danger',
             ];
         }
         $rows[] = $row;
@@ -99,6 +100,7 @@ function premium_duration_keyboard(): array
         $rows[] = [[
             'text' => "💎 {$months} oy — " . format_sum($price),
             'callback_data' => "prem_{$months}",
+            'style' => 'danger',
         ]];
     }
 
@@ -111,9 +113,10 @@ function recipient_choice_keyboard(int $requestId): array
     return [
         'keyboard' => [
             [
-                ['text' => '🙋 O\'zimga'],
+                ['text' => '🙋 O\'zimga', 'style' => 'danger'],
                 [
-                    'text' => '👥 Qabul qiluvchini tanlash',
+                    'text' => '👥 Do\'stimga',
+                    'style' => 'danger',
                     'request_users' => [
                         'request_id' => $requestId,
                         'user_is_bot' => false,
@@ -151,7 +154,7 @@ function complete_recipient_purchase(int $chatId, array $user, array $selection,
 {
     if (($selection['type'] ?? '') === 'stars') {
         $amount = (int) ($selection['amount'] ?? 0);
-        if (!in_array($amount, [50, 75, 100, 150, 250, 350, 500, 750, 1000, 1500, 3000, 5000], true)) {
+        if (!in_array($amount, [50, 100, 500, 1000, 2000, 5000], true)) {
             reset_state($chatId);
             tg_send_message($chatId, "❌ Buyurtma ma'lumoti topilmadi. Stars olishni qaytadan boshlang.", main_menu());
             return;
@@ -189,10 +192,10 @@ function welcome_text(array $user): string
     $firstName = htmlspecialchars(trim((string) ($user['first_name'] ?? '')), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $botUsername = htmlspecialchars(ltrim(BOT_USERNAME, '@'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
-    return "<b>👋🏻 Assalom aleykum, {$firstName} @{$botUsername} botga xush kelibsiz!</b>\n\n" .
-        "<b><i>🤖 Bot orqali quyidagilarni xarid qilish mumkin. «Tez va xavfsiz»</i></b>\n\n" .
-        "<blockquote>⭐️ Telegram Stars — yulduzcha\n🌟 Telegram Premium\n🎁 Telegram Gift — sovg'alar</blockquote>\n\n" .
-        "<b><i>🚀 Boshlash uchun xizmatni tanlang: 👇🏻</i></b>";
+    return "<b>👋🏻 Assalom aleykum, {$firstName} {$botUsername} ga xush kelibsiz!</b>\n\n" .
+        "<b>🤖 Bot orqali quyidagilarni xarid qilish mumkin. «Tez va xavfsiz»</b>\n" .
+        "<blockquote>⭐️ Telegram Stars — yulduz\n🌟 Telegram Premium — obuna\n🎁 Telegram Gift — sovg'alar</blockquote>\n" .
+        "<b> Boshlash uchun xizmatni tanlang: 👇🏻</b>";
 }
 
 function handle_message(array $message): void
@@ -210,11 +213,9 @@ function handle_message(array $message): void
 
     if ($text === '/panel') {
         if (in_array((int) $chatId, ADMIN_CHAT_IDS, true)) {
-            tg_send_message($chatId, "🔐 Admin panel:", [
-                'inline_keyboard' => [[
-                    ['text' => '📊 Admin panelni ochish', 'web_app' => ['url' => SITE_URL . '/admin/login.php']],
-                ]],
-            ]);
+            tg_send_message($chatId, "🔐 Admin panel:", inline_keyboard([[
+                    ['text' => '📊 Admin panelni ochish', 'web_app' => ['url' => SITE_URL . '/admin/login.php'], 'style' => 'primary'],
+                ]]));
         }
         return;
     }
@@ -301,8 +302,8 @@ function handle_photo_message(int $chatId, array $message): void
                 "Summasi: " . format_sum((float) $topup['amount']) . "\n" .
                 "Xaridor: @" . ($user['username'] ?? '-') . " (ID: {$user['telegram_id']})",
             'reply_markup' => json_encode(inline_keyboard([[
-                ['text' => '✅ Tasdiqlash', 'callback_data' => "topup_ok_{$topupId}"],
-                ['text' => '❌ Rad etish', 'callback_data' => "topup_no_{$topupId}"],
+                ['text' => '✅ Tasdiqlash', 'callback_data' => "topup_ok_{$topupId}" , 'style' => 'success'],
+                ['text' => '❌ Rad etish', 'callback_data' => "topup_no_{$topupId}", 'style' => 'danger'],
             ]])),
         ]);
     }
@@ -365,7 +366,11 @@ function handle_callback(array $callback): void
         case $data === 'menu_stars':
             reset_state($chatId);
             tg_edit_message($chatId, $messageId,
-                "⭐ Nechta Stars olmoqchisiz?\nMiqdorni tanlang:",
+                "<b>⭐ Telegram Stars\n\n</b>" .
+                "<b>Siz qanchalik ko'p Stars olsangiz, shunchalik afzalliklarga ega bo'lasiz!\n\n</b>" .
+                "<b>⚠️ Cheklovlar\n</b>" .
+                "<blockquote>▫️Minimal: 50 ta\n▫️Maksimal: 5000 ta\n\n</blockquote>" .
+                "<b>🔣 Kerakli miqdorni tanlang yoki raqam bilan yuboring 👇</b>",
                 stars_amount_keyboard()
             );
             return;
@@ -373,7 +378,19 @@ function handle_callback(array $callback): void
         case $data === 'menu_premium':
             reset_state($chatId);
             tg_edit_message($chatId, $messageId,
-                "💎 Premium muddatini tanlang:",
+                "<b>💎 Telegram Premium\n\n</b>" .
+
+"<b>ℹ️ IMKONIYATLAR\n</b>" .
+"<blockquote>
+⏲ Tezroq yuklab olish tezligi\n
+🗃 Kengaytirilgan xotira limiti\n
+📢 Reklamalarsiz foydalanish\n
+🎤 Ovozni matnga aylantirish imkoniyati\n
+🙂 Animatsiyali emoji va eksklyuziv stikerlar\n
+💬 Kengaytirilgan limitlar va chat boshqaruvi\n\n
+</blockquote>" .
+
+"<b>🔣 Telegram Premium muddatini tanlang</b>",
                 premium_duration_keyboard()
             );
             return;
@@ -407,7 +424,7 @@ function handle_callback(array $callback): void
                 "💳 Balansni to'ldirish uchun Kabinet bo'limiga kiring. Xarid summasi balansingizdan yechiladi.\n\n" .
                 "Savol yoki muammo bo'lsa, admin bilan bog'laning: @id_uzzz",
                 inline_keyboard([
-                    [['text' => '💬 Admin bilan bog\'lanish', 'url' => 'https://t.me/id_uzzz']],
+                    [['text' => '💬 Admin bilan bog\'lanish', 'url' => 'https://t.me/id_uzzz' , 'style' => 'danger']],
                     back_row(),
                 ])
             );
@@ -508,7 +525,7 @@ function handle_state_input(int $chatId, array $user, string $state, array $data
 
             $username = resolve_recipient_username($text);
             if ($username === null) {
-                tg_send_message($chatId, "Ikki tugmadan birini tanlang yoki @username / Telegram ID yuboring:");
+                tg_send_message($chatId, "<b>Tugmalardan birini tanlang yoki @username / Telegram ID yuboring:</b>");
                 return;
             }
 
@@ -576,7 +593,7 @@ function render_purchase_result(int $chatId, array $result, float $price): void
         tg_send_message($chatId,
             "❌ Balansingizda mablag' yetarli emas.\n\nKerak: <b>" . format_sum($price) . "</b>\n\nHisobingizni to'ldirish uchun Kabinet bo'limiga o'ting.",
             inline_keyboard([
-                [['text' => '👤 Kabinet', 'callback_data' => 'menu_kabinet']],
+                [['text' => '👤 Profil', 'callback_data' => 'menu_kabinet']],
                 back_row(),
             ])
         );
@@ -596,7 +613,7 @@ function send_kabinet(int $chatId, array $user, int $messageId): void
         "👤 Kabinet\n\n🪪 User ID: {$user['telegram_id']}\n💰 Hisobingiz: <b>" . format_sum((float) $user['balance']) . "</b>\n" .
         "🛍️ Buyurtmalaringiz: {$row['c']} ta\n💳 Jami xarajat: " . format_sum((float) $row['s']),
         inline_keyboard([
-            [['text' => "💳 Hisob to'ldirish", 'callback_data' => 'menu_topup']],
+            [['text' => "💳 Hisob to'ldirish", 'callback_data' => 'menu_topup' , 'style' => 'success']],
             back_row(),
         ])
     );

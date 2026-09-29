@@ -55,5 +55,5 @@ function subscription_keyboard(array $unsubscribedChannels): array
         $rows[] = [['text' => '➕ ' . ($ch['title'] ?: $ch['chat_id']), 'url' => $url]];
     }
     $rows[] = [['text' => '✅ A\'zo bo\'ldim, tekshirish', 'callback_data' => 'check_subs']];
-    return ['inline_keyboard' => $rows];
+    return inline_keyboard($rows);
 }

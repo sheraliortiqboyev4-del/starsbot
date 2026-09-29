@@ -25,7 +25,7 @@ function tg_api(string $method, array $params = [])
     return json_decode($response, true);
 }
 
-function tg_send_message(int $chatId, string $text, array $keyboard = null, string $parseMode = 'HTML')
+function tg_send_message(int $chatId, string $text, ?array $keyboard = null, string $parseMode = 'HTML')
 {
     $params = [
         'chat_id'    => $chatId,
@@ -47,7 +47,7 @@ function tg_answer_callback(string $callbackId, string $text = '', bool $alert =
     ]);
 }
 
-function tg_edit_message(int $chatId, int $messageId, string $text, array $keyboard = null, string $parseMode = 'HTML')
+function tg_edit_message(int $chatId, int $messageId, string $text, ?array $keyboard = null, string $parseMode = 'HTML')
 {
     $params = [
         'chat_id'    => $chatId,
@@ -66,9 +66,15 @@ function main_menu_keyboard(): array
 {
     return [
         'keyboard' => [
-            ['⭐ Stars sotib olish', '💎 Premium sotib olish'],
-            ['📦 Buyurtmalarim', '💰 Narxlar'],
-            ['ℹ️ Yordam'],
+            [
+                ['text' => '⭐ Stars sotib olish', 'style' => 'success'],
+                ['text' => '💎 Premium sotib olish', 'style' => 'success'],
+            ],
+            [
+                ['text' => '📦 Buyurtmalarim', 'style' => 'primary'],
+                ['text' => '💰 Narxlar', 'style' => 'primary'],
+            ],
+            [['text' => 'ℹ️ Yordam', 'style' => 'primary']],
         ],
         'resize_keyboard'   => true,
         'is_persistent'     => true,
@@ -77,5 +83,34 @@ function main_menu_keyboard(): array
 
 function inline_keyboard(array $rows): array
 {
+    foreach ($rows as &$row) {
+        foreach ($row as &$button) {
+            if (!is_array($button) || isset($button['style'])) {
+                continue;
+            }
+
+            $callback = (string) ($button['callback_data'] ?? '');
+            $text = mb_strtolower((string) ($button['text'] ?? ''), 'UTF-8');
+
+            if (in_array($callback, ['menu_stars', 'menu_gift'], true) ||
+                str_starts_with($callback, 'stars_amt_') ||
+                str_starts_with($callback, 'prem_') ||
+                str_starts_with($callback, 'topup_ok_') ||
+                $callback === 'check_subs' ||
+                str_contains($text, 'tasdiqlash') ||
+                str_contains($text, 'bajarildi')) {
+                $button['style'] = 'success';
+            } elseif (str_starts_with($callback, 'topup_no_') ||
+                str_contains($text, 'rad etish') ||
+                str_contains($text, 'bekor')) {
+                $button['style'] = 'danger';
+            } else {
+                $button['style'] = 'primary';
+            }
+        }
+        unset($button);
+    }
+    unset($row);
+
     return ['inline_keyboard' => $rows];
 }
